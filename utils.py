@@ -2,6 +2,65 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+def soft(dets, confidence=None, ax = None):
+    #confidence ---> variance in paper
+    confidence = np.exp(confidence*0.5)
+    thresh = 0.5 
+    sigma = 0.5
+    N = len(dets)
+    x1 = dets[:, 0].copy()
+    y1 = dets[:, 1].copy()
+    x2 = dets[:, 2].copy()
+    y2 = dets[:, 3].copy()
+    scores = dets[:, 4].copy()
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    ious = np.zeros((N,N))
+    kls = np.zeros((N,N))
+    #calc all ious
+    for i in range(N):
+        xx1 = np.maximum(x1[i], x1)
+        yy1 = np.maximum(y1[i], y1)
+        xx2 = np.minimum(x2[i], x2)
+        yy2 = np.minimum(y2[i], y2)
+
+        w = np.maximum(0.0, xx2 - xx1 + 1.)
+        h = np.maximum(0.0, yy2 - yy1 + 1.)
+        inter = w * h
+        ovr = inter / (areas[i] + areas - inter)
+        ious[i,:] = ovr.copy()
+    i = 0
+    #sort bbox by classification score
+    while i < N:
+        maxpos = dets[i:N, 4].argmax()
+        maxpos += i
+        dets[[maxpos,i]] = dets[[i,maxpos]]
+        confidence[[maxpos,i]] = confidence[[i,maxpos]]
+        ious[[maxpos,i]] = ious[[i,maxpos]]
+        ious[:,[maxpos,i]] = ious[:,[i,maxpos]]
+
+        ovr_bbox = np.where((ious[i, i:N] > thresh))[0] + i
+        sigma_t = 0.02
+        p = np.exp(-(1-ious[i, ovr_bbox])**2/sigma_t)
+        dets[i,:4] = p.dot(dets[ovr_bbox, :4] / confidence[ovr_bbox]**2) / p.dot(1./confidence[ovr_bbox]**2)
+        pos = i + 1
+        while pos < N:
+            if ious[i , pos] > 0:
+                ovr =  ious[i , pos]
+                ##soft nms
+                dets[pos, 4] *= np.exp(-(ovr * ovr)/sigma)
+                if dets[pos, 4] < 0.3:
+                    dets[[pos, N-1]] = dets[[N-1, pos]]
+                    confidence[[pos, N-1]] = confidence[[N-1, pos]]
+                    ious[[pos, N-1]] = ious[[N-1, pos]]
+                    ious[:,[pos, N-1]] = ious[:,[N-1, pos]]
+                    N -= 1
+                    pos -= 1
+            pos += 1
+        i += 1
+    keep=[i for i in range(N)]
+    return dets[keep]
+
+
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -91,6 +150,9 @@ class BBoxTransform(nn.Module):
             self.std = std
 
     def forward(self, boxes, deltas):
+        print('boxes shape')
+        print(boxes.shape)
+        print(deltas.shape)
 
         widths  = boxes[:, :, 2] - boxes[:, :, 0]
         heights = boxes[:, :, 3] - boxes[:, :, 1]

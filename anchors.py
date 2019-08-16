@@ -19,7 +19,6 @@ class Anchors(nn.Module):
             self.scales = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
 
     def forward(self, image):
-        
         image_shape = image.shape[2:]
         image_shape = np.array(image_shape)
         image_shapes = [(image_shape + 2 ** x - 1) // (2 ** x) for x in self.pyramid_levels]
@@ -29,6 +28,7 @@ class Anchors(nn.Module):
 
         for idx, p in enumerate(self.pyramid_levels):
             anchors         = generate_anchors(base_size=self.sizes[idx], ratios=self.ratios, scales=self.scales)
+            #print(anchors)
             shifted_anchors = shift(image_shapes[idx], self.strides[idx], anchors)
             all_anchors     = np.append(all_anchors, shifted_anchors, axis=0)
 
@@ -47,7 +47,6 @@ def generate_anchors(base_size=16, ratios=None, scales=None):
 
     if scales is None:
         scales = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
-
     num_anchors = len(ratios) * len(scales)
 
     # initialize output anchors
@@ -66,7 +65,6 @@ def generate_anchors(base_size=16, ratios=None, scales=None):
     # transform from (x_ctr, y_ctr, w, h) -> (x1, y1, x2, y2)
     anchors[:, 0::2] -= np.tile(anchors[:, 2] * 0.5, (2, 1)).T
     anchors[:, 1::2] -= np.tile(anchors[:, 3] * 0.5, (2, 1)).T
-
     return anchors
 
 def compute_shape(image_shape, pyramid_levels):
@@ -120,8 +118,15 @@ def shift(shape, stride, anchors):
     # reshape to (K*A, 4) shifted anchors
     A = anchors.shape[0]
     K = shifts.shape[0]
+    #print("trans")
+    #print(anchors.reshape((1,A,4)))
+    #print(shifts.reshape((1,K,4)).transpose((1,0,2)))
     all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
+    #print(all_anchors)
+    #print(all_anchors.shape)
     all_anchors = all_anchors.reshape((K * A, 4))
 
     return all_anchors
 
+#ancs  = Anchors()
+#ancs([2,2])

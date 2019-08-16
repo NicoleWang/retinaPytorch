@@ -22,10 +22,10 @@ import losses
 from dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
-import coco_eval
+#import coco_eval
 import csv_eval
 
-assert torch.__version__.split('.')[1] == '4'
+#assert torch.__version__.split('.')[1] == '4'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
@@ -143,10 +143,12 @@ def main(args=None):
 				optimizer.step()
 
 				loss_hist.append(float(loss))
+				#print(loss_hist)
 
 				epoch_loss.append(float(loss))
 
-				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+				#print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} '.format(epoch_num, iter_num, float(classification_loss), float(regression_loss)))
 				
 				del classification_loss
 				del regression_loss
@@ -169,7 +171,8 @@ def main(args=None):
 		
 		scheduler.step(np.mean(epoch_loss))	
 
-		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+		torch.save(retinanet.module, './person304/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
+		#torch.save(retinanet.module, './temp/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
 

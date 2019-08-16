@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from torch.utils.data.sampler import Sampler
 
-from pycocotools.coco import COCO
+#from pycocotools.coco import COCO
 
 import skimage.io
 import skimage.transform
@@ -34,7 +34,7 @@ class CocoDataset(Dataset):
         self.set_name = set_name
         self.transform = transform
 
-        self.coco      = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.json'))
+        #self.coco      = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.json'))
         self.image_ids = self.coco.getImgIds()
 
         self.load_classes()
@@ -149,6 +149,7 @@ class CSVDataset(Dataset):
             self.labels[value] = key
 
         # csv with img_path, x1, y1, x2, y2, class_name
+        print(self.classes)
         try:
             with self._open_for_csv(self.train_file) as file:
                 self.image_data = self._read_annotations(csv.reader(file, delimiter=','), self.classes)
@@ -257,7 +258,12 @@ class CSVDataset(Dataset):
             line += 1
 
             try:
-                img_file, x1, y1, x2, y2, class_name = row[:6]
+                if len(row) == 6:
+                    img_file, x1, y1, x2, y2, class_name = row[:6]
+                elif len(row) == 7:
+                    img_file, post, x1, y1, x2, y2, class_name = row[:7]
+                    img_file = img_file +','+post
+                print(img_file, x1, y1, x2, y2, class_name)
             except ValueError:
                 raise_from(ValueError('line {}: format should be \'img_file,x1,y1,x2,y2,class_name\' or \'img_file,,,,,\''.format(line)), None)
 
@@ -341,7 +347,7 @@ def collater(data):
 class Resizer(object):
     """Convert ndarrays in sample to Tensors."""
 
-    def __call__(self, sample, min_side=608, max_side=1024):
+    def __call__(self, sample, min_side=304, max_side=512):
         image, annots = sample['img'], sample['annot']
 
         rows, cols, cns = image.shape

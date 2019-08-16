@@ -3,15 +3,17 @@ import torch
 import math
 import time
 import torch.utils.model_zoo as model_zoo
-from utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
+from utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes, soft
 from anchors import Anchors
 import losses
-from lib.nms.pth_nms import pth_nms
+from lib.nms.gpu_nms import gpu_nms
+import numpy  as np
 
 def nms(dets, thresh):
     "Dispatch to either CPU or GPU NMS implementations.\
     Accept dets as tensor"""
-    return pth_nms(dets, thresh)
+    dets = dets.cpu().numpy()
+    return gpu_nms(dets, thresh)
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -88,6 +90,7 @@ class RegressionModel(nn.Module):
         self.act4 = nn.ReLU()
 
         self.output = nn.Conv2d(feature_size, num_anchors*4, kernel_size=3, padding=1)
+        #self.output_vars = nn.Conv2d(feature_size, num_anchors*4, kernel_size=3, padding=1)
 
     def forward(self, x):
 
@@ -103,12 +106,15 @@ class RegressionModel(nn.Module):
         out = self.conv4(out)
         out = self.act4(out)
 
+        #out_vars = self.output_vars(out)
         out = self.output(out)
 
         # out is B x C x W x H, with C = 4*num_anchors
         out = out.permute(0, 2, 3, 1)
+        #out_vars = out_vars.permute(0, 2, 3, 1)
+        return out.contiguous().view(out.shape[0], -1,4)
 
-        return out.contiguous().view(out.shape[0], -1, 4)
+        #return out.contiguous().view(out.shape[0], -1, 4), out_vars.contiguous().view(out_vars.shape[0], -1, 4)
 
 class ClassificationModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
@@ -148,6 +154,7 @@ class ClassificationModel(nn.Module):
 
         out = self.output(out)
         out = self.output_act(out)
+        #print(out.shape)
 
         # out is B x C x W x H, with C = n_classes + n_anchors
         out1 = out.permute(0, 2, 3, 1)
@@ -156,6 +163,10 @@ class ClassificationModel(nn.Module):
 
         out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
 
+        #temp = out2.contiguous().view(x.shape[0], -1,
+        #        self.num_classes).cpu().numpy()
+        #print("\n\n*******************")
+        #print(temp[0,:10,:])
         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
 
 class ResNet(nn.Module):
@@ -189,6 +200,7 @@ class ResNet(nn.Module):
         self.clipBoxes = ClipBoxes()
         
         self.focalLoss = losses.FocalLoss()
+        #self.focalLoss = losses.KLFocalLoss()
                 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -237,8 +249,10 @@ class ResNet(nn.Module):
             img_batch, annotations = inputs
         else:
             img_batch = inputs
-            
+        #import pdb
+        #pdb.set_trace()
         x = self.conv1(img_batch)
+        #pdb.set_trace()
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
@@ -250,27 +264,41 @@ class ResNet(nn.Module):
 
         features = self.fpn([x2, x3, x4])
 
-        regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1)
-
+        regression  = torch.cat([self.regressionModel(feature) for feature in features], dim=1)
         classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1)
+        '''
+        regression = []
+        variance = []
+        for feature in features:
+            reg, var  = self.regressionModel(feature)
+            regression.append(reg)
+            variance.append(var)
+        variance = torch.cat(variance, dim=1)
+        regression = torch.cat(regression, dim=1)
+        '''
 
         anchors = self.anchors(img_batch)
 
         if self.training:
             return self.focalLoss(classification, regression, anchors, annotations)
+            #return self.focalLoss(classification, regression, variance,anchors, annotations)
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
 
             scores = torch.max(classification, dim=2, keepdim=True)[0]
+            temp = np.squeeze(scores.cpu().numpy())
+            #print(np.sort(temp)[-20:])
+            #print(scores.cpu().numpy())
 
-            scores_over_thresh = (scores>0.05)[0, :, 0]
+            scores_over_thresh = (scores>0.5)[0, :, 0]
 
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
 
             classification = classification[:, scores_over_thresh, :]
+            #variance = variance[:,scores_over_thresh,:]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
             scores = scores[:, scores_over_thresh, :]
 
@@ -279,6 +307,8 @@ class ResNet(nn.Module):
             nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
 
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
+            #anchors_nms = soft(torch.cat([transformed_anchors,scores],dim=2)[0,:, :].cpu().numpy(),variance[0,:,:].cpu().numpy())
+            #return [anchors_nms[:,4], anchors_nms[:,:4]]
 
 
 
