@@ -172,7 +172,7 @@ def main(args=None):
 		
 		scheduler.step(np.mean(epoch_loss))	
 
-		torch.save(retinanet.module, './outputs/{}_3*3conv1_NoMaxPool_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
+		torch.save(retinanet.module, './outputs/{}_3anchors_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 		#torch.save(retinanet.module, './temp/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
