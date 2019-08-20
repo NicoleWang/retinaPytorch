@@ -100,7 +100,9 @@ def draw_caption(image, box, caption):
 
 imgdir = parser.imgdir
 namelist = os.listdir(imgdir)
+st = time.time()
 for idx, imname in enumerate(namelist):
+    print("processing %d/%d %s"%(idx,len(namelist),imname))
     impath = os.path.join(imgdir,imname)
     ori_img = cv2.imread(impath)
     out_img = cv2.imread(impath)
@@ -109,7 +111,7 @@ for idx, imname in enumerate(namelist):
     image = normalize_image(image)
     image, scale = resize_image(image)
     h,w,c = image.shape
-    print(scale,h,w,c)
+    #print(scale,h,w,c)
     #print(image[0,:5,:])
     #print(h,w,c)
     im_tensor = torch.zeros(1,h,w,3)
@@ -118,21 +120,8 @@ for idx, imname in enumerate(namelist):
     im_tensor = im_tensor.permute(0,3,1,2)
 
     with torch.no_grad():
-        st = time.time()
         scores, classification, transformed_anchors = retinanet(im_tensor.cuda().float())
-        #scores, transformed_anchors = retinanet(im_tensor.cuda().float())
-        print('Elapsed time: {}'.format(time.time()-st))
-        #idxs = np.where(scores>0.2)
         idxs = np.where(scores.cpu().numpy()>0.2)
-        #img = np.array(255 * unnormalize(im_tensor[0, :, :, :])).copy()
-
-        #img[img<0] = 0
-        #img[img>255] = 255
-
-        #img = np.transpose(img, (1, 2, 0)) #CHW -> HWC
-        ##img = img.astype(np.int8)
-        ##img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2RGB)
-        #img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_RGB2BGR)
 
         for j in range(idxs[0].shape[0]):
             bbox = transformed_anchors[idxs[0][j], :]
@@ -141,14 +130,14 @@ for idx, imname in enumerate(namelist):
             y1 = int(bbox[1]/scale)
             x2 = int(bbox[2]/scale)
             y2 = int(bbox[3]/scale)
-            print(x1,y1,x2,y2,score)
+            #print(x1,y1,x2,y2,score)
             #if int(classification[idxs[0][j]]) == 0:
-            if 1:
-                label_name = "person"
+            if 0:
+                label_name = "%f"%score
                 draw_caption(out_img, (x1, y1, x2, y2), label_name)
                 cv2.rectangle(out_img, (x1, y1), (x2, y2), color=(0, 0, 255), thickness=2)
-                print(label_name)
-        outpath = os.path.join('results', imname)
-        cv2.imwrite(outpath, out_img)
+        #outpath = os.path.join('results', imname)
+        #cv2.imwrite(outpath, out_img)
         #cv2.imshow('img', img)
         #cv2.waitKey(0)
+print('Elapsed time: {}'.format((time.time()-st)*1000.0/len(namelist)))

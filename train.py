@@ -83,7 +83,8 @@ def main(args=None):
 
 	# Create the model
 	if parser.depth == 18:
-		retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet18(num_classes=dataset_train.num_classes(),
+                pretrained=False)
 	elif parser.depth == 34:
 		retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
 	elif parser.depth == 50:
@@ -171,7 +172,7 @@ def main(args=None):
 		
 		scheduler.step(np.mean(epoch_loss))	
 
-		torch.save(retinanet.module, './person304/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
+		torch.save(retinanet.module, './outputs/{}_3*3conv1_NoMaxPool_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 		#torch.save(retinanet.module, './temp/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()

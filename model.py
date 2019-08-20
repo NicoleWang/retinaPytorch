@@ -163,25 +163,29 @@ class ClassificationModel(nn.Module):
 
         out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
 
-        #temp = out2.contiguous().view(x.shape[0], -1,
-        #        self.num_classes).cpu().numpy()
-        #print("\n\n*******************")
-        #print(temp[0,:10,:])
         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
 
 class ResNet(nn.Module):
 
     def __init__(self, num_classes, block, layers):
         self.inplanes = 64
+        self.base_chn_num = 32
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        ##kernel num: 32, stride: 2
+        self.conv1 = nn.Conv2d(3, self.base_chn_num, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.base_chn_num)
+        self.relu1 = nn.ReLU(inplace=True)
+        ##kernel num: 64, stride: 4
+        self.conv2 = nn.Conv2d(self.base_chn_num, self.base_chn_num*2,kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(self.base_chn_num*2)
+        self.relu2 = nn.ReLU(inplace=True)
+        self.layer1 = self._make_layer(block, self.base_chn_num*2, layers[0])
+        ##kernel num: 128, stride:8
+        self.layer2 = self._make_layer(block, self.base_chn_num*4, layers[1], stride=2)
+        ##kernel num: 256, stride:16 
+        self.layer3 = self._make_layer(block, self.base_chn_num*8, layers[2], stride=2)
+        ##kernel num: 512, stride:32
+        self.layer4 = self._make_layer(block, self.base_chn_num*16, layers[3], stride=2)
 
         if block == BasicBlock:
             fpn_sizes = [self.layer2[layers[1]-1].conv2.out_channels, self.layer3[layers[2]-1].conv2.out_channels, self.layer4[layers[3]-1].conv2.out_channels]
@@ -252,10 +256,13 @@ class ResNet(nn.Module):
         #import pdb
         #pdb.set_trace()
         x = self.conv1(img_batch)
-        #pdb.set_trace()
         x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
+        #x = self.relu(x)
+        #x = self.maxpool(x)
+        x = self.relu1(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x)
 
         x1 = self.layer1(x)
         x2 = self.layer2(x1)
@@ -287,9 +294,6 @@ class ResNet(nn.Module):
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
 
             scores = torch.max(classification, dim=2, keepdim=True)[0]
-            temp = np.squeeze(scores.cpu().numpy())
-            #print(np.sort(temp)[-20:])
-            #print(scores.cpu().numpy())
 
             scores_over_thresh = (scores>0.5)[0, :, 0]
 
