@@ -54,23 +54,23 @@ class PyramidFeatures(nn.Module):
 
         P5_x = self.P5_1(C5)
         P5_upsampled_x = self.P5_upsampled(P5_x)
-        P5_x = self.P5_2(P5_x)
+        #P5_x = self.P5_2(P5_x)
         
         P4_x = self.P4_1(C4)
         P4_x = P5_upsampled_x + P4_x
         P4_upsampled_x = self.P4_upsampled(P4_x)
-        P4_x = self.P4_2(P4_x)
+        #P4_x = self.P4_2(P4_x)
 
         P3_x = self.P3_1(C3)
         P3_x = P3_x + P4_upsampled_x
         P3_x = self.P3_2(P3_x)
 
-        P6_x = self.P6(C5)
+        #P6_x = self.P6(C5)
 
-        P7_x = self.P7_1(P6_x)
-        P7_x = self.P7_2(P7_x)
+        #P7_x = self.P7_1(P6_x)
+        #P7_x = self.P7_2(P7_x)
 
-        return [P3_x, P4_x, P5_x, P6_x, P7_x]
+        return [P3_x]
 
 
 class RegressionModel(nn.Module):
@@ -194,11 +194,11 @@ class ResNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
+        self.regressionModel = RegressionModel(256, num_anchors=3)
+        self.classificationModel = ClassificationModel(256, num_anchors=3, num_classes=num_classes)
 
-        self.anchors = Anchors()
-
+        #self.anchors=Anchors(pyramid_levels=[3],strides=[8],sizes=[96],ratios=[1,2,3],scales=[1])
+        self.anchors=Anchors()
         self.regressBoxes = BBoxTransform()
 
         self.clipBoxes = ClipBoxes()
