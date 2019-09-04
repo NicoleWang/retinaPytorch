@@ -8,17 +8,17 @@ class Anchors(nn.Module):
         super(Anchors, self).__init__()
 
         if pyramid_levels is None:
-            self.pyramid_levels = [3]
+            self.pyramid_levels = [3,4]
         else:
             self.pyramid_levels = pyramid_levels
         if strides is None:
             #self.strides = [2 ** x for x in self.pyramid_levels]
-            self.strides = [8]
+            self.strides = [8,16]
         else:
             self.strides = strides
         if sizes is None:
             #self.sizes = [2 ** (x + 1) for x in self.pyramid_levels]
-            self.sizes = [96]
+            self.sizes = [64, 128]
         else:
             self.sizes = sizes
         if ratios is None:

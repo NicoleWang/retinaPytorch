@@ -149,7 +149,7 @@ class CSVDataset(Dataset):
             self.labels[value] = key
 
         # csv with img_path, x1, y1, x2, y2, class_name
-        print(self.classes)
+        #print(self.classes)
         try:
             with self._open_for_csv(self.train_file) as file:
                 self.image_data = self._read_annotations(csv.reader(file, delimiter=','), self.classes)
@@ -263,7 +263,7 @@ class CSVDataset(Dataset):
                 elif len(row) == 7:
                     img_file, post, x1, y1, x2, y2, class_name = row[:7]
                     img_file = img_file +','+post
-                print(img_file, x1, y1, x2, y2, class_name)
+                #print(img_file, x1, y1, x2, y2, class_name)
             except ValueError:
                 raise_from(ValueError('line {}: format should be \'img_file,x1,y1,x2,y2,class_name\' or \'img_file,,,,,\''.format(line)), None)
 

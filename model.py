@@ -70,7 +70,7 @@ class PyramidFeatures(nn.Module):
         #P7_x = self.P7_1(P6_x)
         #P7_x = self.P7_2(P7_x)
 
-        return [P3_x]
+        return [P3_x, P4_x]
 
 
 class RegressionModel(nn.Module):
@@ -168,8 +168,8 @@ class ClassificationModel(nn.Module):
 class ResNet(nn.Module):
 
     def __init__(self, num_classes, block, layers):
-        self.inplanes = 64
-        self.base_chn_num = 32
+        self.inplanes = 16
+        self.base_chn_num =8
         super(ResNet, self).__init__()
         ##kernel num: 32, stride: 2
         self.conv1 = nn.Conv2d(3, self.base_chn_num, kernel_size=3, stride=2, padding=1, bias=False)
@@ -322,8 +322,9 @@ def resnet18(num_classes, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
-    if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
+    model = torch.load('outputs/csv_output8_16_half_cocoaic_14.pt')
+    #if pretrained:
+    #    model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model
 
 

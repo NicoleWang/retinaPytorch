@@ -42,20 +42,21 @@ class UnNormalizer(object):
             t.mul_(s).add_(m)
         return tensor
 
-def resize_image(image, min_side=608, max_side=1024):
+def resize_image(image, min_side=304, max_side=512):
     rows, cols, cns = image.shape
     smallest_side = min(rows, cols)
     # rescale the image so the smallest side is min_side
-    scale = min_side / smallest_side
+    scale = 1.0 * min_side / smallest_side
     # check if the largest side is now greater than max_side, which can happen
     # when images have a large aspect ratio
     largest_side = max(rows, cols)
     if largest_side * scale > max_side:
-        scale = max_side / largest_side
+        scale = 1.0 * max_side / largest_side
     # resize the image with the computed scale
-    image = skimage.transform.resize(image, (int(round(rows*scale)), int(round((cols*scale)))))
+    #image = skimage.transform.resize(image, (int(round(rows*scale)), int(round((cols*scale)))))
+    image = cv2.resize(image, (int(round(cols*scale)),int(round((rows*scale)))))
     rows, cols, cns = image.shape
-    print(rows, cols)
+    #print(rows, cols)
     pad_w = 32 - rows%32
     pad_h = 32 - cols%32
     new_image = np.zeros((rows + pad_w, cols + pad_h, cns)).astype(np.float32)
@@ -94,17 +95,18 @@ def draw_caption(image, box, caption):
 rootdir = parser.rootdir
 savedir = parser.savedir
 namelist = os.listdir(rootdir)
+st = time.time()
+img_total = 0
 for idx, imgdir in enumerate(namelist):
-    #if idx != 3:
-    #    continue
-    out_json_path = os.path.join(savedir,imgdir+'.json')
+    #out_json_path = os.path.join(savedir,imgdir+'.json')
     imgdir = os.path.join(rootdir, imgdir, 'imgs')
     imnames = os.listdir(imgdir)
-    out_ann = dict()
+    #out_ann = dict()
+    img_total += len(imnames)
     for imname in imnames:
-        frame_id = int(imname[:-4])
+        #frame_id = int(imname[:-4])
         impath = os.path.join(imgdir,imname)
-        print(impath)
+        #print(impath)
         ori_img = cv2.imread(impath)
         ori_img = ori_img[:,:,::-1]
         image = ori_img.astype(np.float32)/255.0
@@ -116,13 +118,12 @@ for idx, imgdir in enumerate(namelist):
         im_tensor[0,:h,:w,:] = image
         #print(im_tensor.shape)
         im_tensor = im_tensor.permute(0,3,1,2)
-        all_bbs = []
+        #all_bbs = []
         with torch.no_grad():
-            st = time.time()
-            #scores, classification, transformed_anchors = retinanet(im_tensor.cuda().float())
-            scores, transformed_anchors = retinanet(im_tensor.cuda().float())
+            scores, classification, transformed_anchors = retinanet(im_tensor.cuda().float())
+            #scores, transformed_anchors = retinanet(im_tensor.cuda().float())
             #print('Elapsed time: {}'.format(time.time()-st))
-            idxs = np.where(scores>0.5)
+            idxs = np.where(scores.cpu().numpy()>=0.5)
             #img = np.array(255 * unnormalize(im_tensor[0, :, :, :])).copy()
     
             #img[img<0] = 0
@@ -140,7 +141,7 @@ for idx, imgdir in enumerate(namelist):
                 x2 = int(bbox[2]/scale)
                 y2 = int(bbox[3]/scale)
                 #if int(classification[idxs[0][j]]) == 0:
-                if 1:
+                if 0:
                     '''
                     label_name = "person"
                     draw_caption(img, (x1, y1, x2, y2), label_name)
@@ -148,11 +149,13 @@ for idx, imgdir in enumerate(namelist):
                     print(label_name)
                     '''
                     all_bbs.append([x1,y1,x2,y2])
-        out_ann[str(frame_id)] = all_bbs
-    with open(out_json_path,'w') as f:
-        json.dump(out_ann, f, indent=2)
-            #outpath = os.path.join('results', imname)
-            #cv2.imwrite(outpath, img)
-            #cv2.imshow('img', img)
-            #cv2.waitKey(0)
-
+        #out_ann[str(frame_id)] = all_bbs
+    #with open(out_json_path,'w') as f:
+    #    json.dump(out_ann, f, indent=2)
+    #        #outpath = os.path.join('results', imname)
+    #        #cv2.imwrite(outpath, img)
+    #        #cv2.imshow('img', img)
+    #        #cv2.waitKey(0)
+end = time.time()
+ave_time = 1000.0 * (end-st)/img_total
+print("average time is: %.2f ms"%ave_time)

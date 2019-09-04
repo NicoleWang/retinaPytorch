@@ -95,8 +95,8 @@ unnormalize = UnNormalizer()
 
 def draw_caption(image, box, caption):
     b = np.array(box).astype(int)
-    cv2.putText(image, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 2)
-    cv2.putText(image, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+    cv2.putText(image, caption, (b[0], b[1] - 5),cv2.FONT_HERSHEY_PLAIN,1,(0, 0, 255), 2)
+    #cv2.putText(image, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
 
 imgdir = parser.imgdir
 namelist = os.listdir(imgdir)
@@ -132,12 +132,12 @@ for idx, imname in enumerate(namelist):
             y2 = int(bbox[3]/scale)
             #print(x1,y1,x2,y2,score)
             #if int(classification[idxs[0][j]]) == 0:
-            if 0:
-                label_name = "%f"%score
+            if 1:
+                label_name = "%.2f"%score
                 draw_caption(out_img, (x1, y1, x2, y2), label_name)
-                cv2.rectangle(out_img, (x1, y1), (x2, y2), color=(0, 0, 255), thickness=2)
-        #outpath = os.path.join('results', imname)
-        #cv2.imwrite(outpath, out_img)
+                cv2.rectangle(out_img, (x1, y1), (x2, y2), color=(255,0, 0), thickness=2)
+        outpath = os.path.join('results', imname)
+        cv2.imwrite(outpath, out_img)
         #cv2.imshow('img', img)
         #cv2.waitKey(0)
 print('Elapsed time: {}'.format((time.time()-st)*1000.0/len(namelist)))
