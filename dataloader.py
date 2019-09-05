@@ -410,6 +410,7 @@ class Augmenter(object):
                 ysh = -ysh
             trans_mat = np.array([[1,0,xsh],[0,1,ysh]], dtype=np.float32)
             image, annots = sample['img'], sample['annot']
+            image = image[:, ::-1, :]
             rows, cols, channels = image.shape
             image = cv2.warpAffine(image, trans_mat, (cols, rows))
 
@@ -417,6 +418,7 @@ class Augmenter(object):
             annots[:, 2] += xsh
             annots[:, 1] += ysh
             annots[:, 3] += ysh
+            sample = {'img': image, 'annot': annots}
         return sample
 
 
