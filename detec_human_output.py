@@ -98,15 +98,15 @@ namelist = os.listdir(rootdir)
 st = time.time()
 img_total = 0
 for idx, imgdir in enumerate(namelist):
-    #out_json_path = os.path.join(savedir,imgdir+'.json')
+    out_json_path = os.path.join(savedir,imgdir+'.json')
     imgdir = os.path.join(rootdir, imgdir, 'imgs')
     imnames = os.listdir(imgdir)
-    #out_ann = dict()
+    out_ann = dict()
     img_total += len(imnames)
-    for imname in imnames:
-        #frame_id = int(imname[:-4])
+    for imid, imname in enumerate(imnames):
+        frame_id = int(imname[:-4])
         impath = os.path.join(imgdir,imname)
-        #print(impath)
+        print("%d/%d, %s"%(imid, len(imnames),impath))
         ori_img = cv2.imread(impath)
         ori_img = ori_img[:,:,::-1]
         image = ori_img.astype(np.float32)/255.0
@@ -118,44 +118,22 @@ for idx, imgdir in enumerate(namelist):
         im_tensor[0,:h,:w,:] = image
         #print(im_tensor.shape)
         im_tensor = im_tensor.permute(0,3,1,2)
-        #all_bbs = []
+        all_bbs = []
         with torch.no_grad():
             scores, classification, transformed_anchors = retinanet(im_tensor.cuda().float())
             #scores, transformed_anchors = retinanet(im_tensor.cuda().float())
             #print('Elapsed time: {}'.format(time.time()-st))
             idxs = np.where(scores.cpu().numpy()>=0.5)
-            #img = np.array(255 * unnormalize(im_tensor[0, :, :, :])).copy()
-    
-            #img[img<0] = 0
-            #img[img>255] = 255
-    
-            #img = np.transpose(img, (1, 2, 0)) #CHW -> HWC
-            #img = img.astype(np.int8)
-            #img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2RGB)
-            #img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_RGB2BGR)
-    
             for j in range(idxs[0].shape[0]):
                 bbox = transformed_anchors[idxs[0][j], :]
                 x1 = int(bbox[0]/scale)
                 y1 = int(bbox[1]/scale)
                 x2 = int(bbox[2]/scale)
                 y2 = int(bbox[3]/scale)
-                #if int(classification[idxs[0][j]]) == 0:
-                if 0:
-                    '''
-                    label_name = "person"
-                    draw_caption(img, (x1, y1, x2, y2), label_name)
-                    cv2.rectangle(img, (x1, y1), (x2, y2), color=(0, 0, 255), thickness=2)
-                    print(label_name)
-                    '''
-                    all_bbs.append([x1,y1,x2,y2])
-        #out_ann[str(frame_id)] = all_bbs
-    #with open(out_json_path,'w') as f:
-    #    json.dump(out_ann, f, indent=2)
-    #        #outpath = os.path.join('results', imname)
-    #        #cv2.imwrite(outpath, img)
-    #        #cv2.imshow('img', img)
-    #        #cv2.waitKey(0)
-end = time.time()
-ave_time = 1000.0 * (end-st)/img_total
-print("average time is: %.2f ms"%ave_time)
+                all_bbs.append([x1,y1,x2,y2])
+        out_ann[str(frame_id)] = all_bbs
+    with open(out_json_path,'w') as f:
+        json.dump(out_ann, f, indent=2)
+#end = time.time()
+#ave_time = 1000.0 * (end-st)/img_total
+#print("average time is: %.2f ms"%ave_time)

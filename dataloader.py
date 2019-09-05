@@ -18,6 +18,7 @@ import skimage.color
 import skimage
 
 from PIL import Image
+import cv2
 
 
 class CocoDataset(Dataset):
@@ -382,24 +383,40 @@ class Resizer(object):
 class Augmenter(object):
     """Convert ndarrays in sample to Tensors."""
 
-    def __call__(self, sample, flip_x=0.5):
+    def __call__(self, sample, flip_x=0.5, shift=0.5):
+
 
         if np.random.rand() < flip_x:
             image, annots = sample['img'], sample['annot']
             image = image[:, ::-1, :]
-
             rows, cols, channels = image.shape
-
             x1 = annots[:, 0].copy()
             x2 = annots[:, 2].copy()
-            
             x_tmp = x1.copy()
 
             annots[:, 0] = cols - x2
             annots[:, 2] = cols - x_tmp
 
             sample = {'img': image, 'annot': annots}
+    
+        if np.random.rand() < shift:
+            #print("Augmentation: Shift whole image")
+            shift_bound = 16
+            xsh = int(np.random.rand()*shift_bound)
+            ysh = int(np.random.rand()*shift_bound)
+            if np.random.rand() < 0.5:
+                xsh = -xsh
+            if np.random.rand() < 0.5:
+                ysh = -ysh
+            trans_mat = np.array([[1,0,xsh],[0,1,ysh]], dtype=np.float32)
+            image, annots = sample['img'], sample['annot']
+            rows, cols, channels = image.shape
+            image = cv2.warpAffine(image, trans_mat, (cols, rows))
 
+            annots[:, 0] += xsh
+            annots[:, 2] += xsh
+            annots[:, 1] += ysh
+            annots[:, 3] += ysh
         return sample
 
 
