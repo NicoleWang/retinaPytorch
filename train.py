@@ -171,9 +171,9 @@ def main(args=None):
 
         
         scheduler.step(np.mean(epoch_loss))
-        #if epoch_num%10==0:
-        if 1:
-            torch.save(retinanet.module, './outputs/{}_output8_16_half_cocoaic_{}.pt'.format(parser.dataset, epoch_num))
+        #if 1:
+        if epoch_num%10==0:
+            torch.save(retinanet.module, './outputs/{}_output8_16_32_{}.pt'.format(parser.dataset, epoch_num))
         #torch.save(retinanet.module, './temp/{}_retinanet_cococrowd_{}.pt'.format(parser.dataset, epoch_num))
 
     retinanet.eval()

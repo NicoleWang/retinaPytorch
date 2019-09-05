@@ -24,7 +24,7 @@ model_urls = {
 }
 
 class PyramidFeatures(nn.Module):
-    def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
+    def __init__(self, C3_size, C4_size, C5_size, feature_size=128):
         super(PyramidFeatures, self).__init__()
         
         # upsample C5 to get P5 from the FPN paper
@@ -54,7 +54,7 @@ class PyramidFeatures(nn.Module):
 
         P5_x = self.P5_1(C5)
         P5_upsampled_x = self.P5_upsampled(P5_x)
-        #P5_x = self.P5_2(P5_x)
+        P5_x = self.P5_2(P5_x)
         
         P4_x = self.P4_1(C4)
         P4_x = P5_upsampled_x + P4_x
@@ -70,11 +70,11 @@ class PyramidFeatures(nn.Module):
         #P7_x = self.P7_1(P6_x)
         #P7_x = self.P7_2(P7_x)
 
-        return [P3_x, P4_x]
+        return [P3_x, P4_x, P5_x]
 
 
 class RegressionModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=128):
         super(RegressionModel, self).__init__()
         
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
@@ -117,7 +117,7 @@ class RegressionModel(nn.Module):
         #return out.contiguous().view(out.shape[0], -1, 4), out_vars.contiguous().view(out_vars.shape[0], -1, 4)
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=128):
         super(ClassificationModel, self).__init__()
 
         self.num_classes = num_classes
@@ -194,8 +194,8 @@ class ResNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256, num_anchors=3)
-        self.classificationModel = ClassificationModel(256, num_anchors=3, num_classes=num_classes)
+        self.regressionModel = RegressionModel(128, num_anchors=3)
+        self.classificationModel = ClassificationModel(128, num_anchors=3, num_classes=num_classes)
 
         #self.anchors=Anchors(pyramid_levels=[3],strides=[8],sizes=[96],ratios=[1,2,3],scales=[1])
         self.anchors=Anchors()
@@ -321,8 +321,8 @@ def resnet18(num_classes, pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
-    model = torch.load('outputs/csv_output8_16_half_cocoaic_14.pt')
+    model = ResNet(num_classes, BasicBlock, [3, 3, 3, 3], **kwargs)
+    #model = torch.load('outputs/csv_output8_16_half_cocoaic_14.pt')
     #if pretrained:
     #    model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model

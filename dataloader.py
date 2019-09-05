@@ -417,6 +417,7 @@ class Augmenter(object):
             annots[:, 2] += xsh
             annots[:, 1] += ysh
             annots[:, 3] += ysh
+            sample = {'img': image, 'annot': annots}
         return sample
 
 
