@@ -33,7 +33,7 @@ def soft(dets, confidence=None, ax = None):
     while i < N:
         maxpos = dets[i:N, 4].argmax()
         maxpos += i
-        dets[[maxpos,i]] = dets[[i,maxpos]]
+        dets[[maxpos,i]] = dets[[i,maxpos]]#swap two rows of matrix -> swap two boxes
         confidence[[maxpos,i]] = confidence[[i,maxpos]]
         ious[[maxpos,i]] = ious[[i,maxpos]]
         ious[:,[maxpos,i]] = ious[:,[i,maxpos]]

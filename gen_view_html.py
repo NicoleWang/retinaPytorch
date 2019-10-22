@@ -16,7 +16,7 @@ for idx, name in enumerate(namelist):
     else:
         impath = os.path.join(imgdir, name)
     #impath = os.path.abspath(impath)
-    fn.write("<img src=\"%s\" width=\"960\" height=\"540\">\n"%impath)
+    fn.write("<img src=\"%s\" width=\"1920\" height=\"540\">\n"%impath)
     #print(impath)
 fn.write("</body>\n")
 fn.write("</html>")

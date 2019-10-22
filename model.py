@@ -295,7 +295,7 @@ class ResNet(nn.Module):
 
             scores = torch.max(classification, dim=2, keepdim=True)[0]
 
-            scores_over_thresh = (scores>0.5)[0, :, 0]
+            scores_over_thresh = (scores>0.1)[0, :, 0]
 
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
@@ -322,7 +322,9 @@ def resnet18(num_classes, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
-    model = torch.load('outputs/csv_output8_16_half_cocoaic_14.pt')
+    model = torch.load('model_final.pt')
+    print("load pretrained model: model_final.pt")
+    #model = torch.load('outputs/csv_output8_16_half_cocoaic_14.pt')
     #if pretrained:
     #    model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model

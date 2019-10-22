@@ -19,7 +19,7 @@ import skimage
 
 from PIL import Image
 import cv2
-
+import auto_aug
 
 class CocoDataset(Dataset):
     """Coco dataset."""
@@ -207,6 +207,27 @@ class CSVDataset(Dataset):
 
         img = self.load_image(idx)
         annot = self.load_annotations(idx)
+        ##TODO do nas image augmentation
+        imh,imw,_ = img.shape
+        #make up auto_aug ann format [y1,x1,y2,x2, 0, 0, 0]
+        tann =np.zeros((annot.shape[0],7))
+        tann[:,0] = annot[:,1] / imh
+        tann[:,1] = annot[:,0] / imw
+        tann[:,2] = annot[:,3] / imh
+        tann[:,3] = annot[:,2] / imw
+        #print(annot.shape)
+        aug_img, aug_bbs = auto_aug.distort_image_with_autoaugment(img, tann,'v0')
+        #print(aug_bbs.shape)
+        if False:
+        #if annot.shape[0] == aug_bbs.shape[0]:
+            annot[:,0] = aug_bbs[:,1] * imw
+            annot[:,1] = aug_bbs[:,0] * imh
+            annot[:,2] = aug_bbs[:,3] * imw
+            annot[:,3] = aug_bbs[:,2] * imh
+            img = aug_img.astype(np.float32)/255.0
+        else:
+            img = img.astype(np.float32)/255.0
+
         sample = {'img': img, 'annot': annot}
         if self.transform:
             sample = self.transform(sample)
@@ -214,12 +235,13 @@ class CSVDataset(Dataset):
         return sample
 
     def load_image(self, image_index):
-        img = skimage.io.imread(self.image_names[image_index])
+        #img = skimage.io.imread(self.image_names[image_index])
+        img = cv2.imread(self.image_names[image_index])
 
-        if len(img.shape) == 2:
-            img = skimage.color.gray2rgb(img)
-
-        return img.astype(np.float32)/255.0
+        #if len(img.shape) == 2:
+        #    img = skimage.color.gray2rgb(img)
+        #return img.astype(np.float32)/255.0
+        return img
 
     def load_annotations(self, image_index):
         # get ground truth annotations

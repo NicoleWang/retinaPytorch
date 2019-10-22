@@ -133,6 +133,7 @@ def shift(shape, stride, anchors):
     #print("trans")
     #print(anchors.reshape((1,A,4)))
     #print(shifts.reshape((1,K,4)).transpose((1,0,2)))
+    #using broadcasting to generate all anchors
     all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
     #print(all_anchors)
     #print(all_anchors.shape)
