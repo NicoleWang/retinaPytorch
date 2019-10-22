@@ -99,7 +99,7 @@ st = time.time()
 img_total = 0
 for idx, imgdir in enumerate(namelist):
     out_json_path = os.path.join(savedir,imgdir+'.json')
-    imgdir = os.path.join(rootdir, imgdir, 'imgs')
+    imgdir = os.path.join(rootdir, imgdir, 'img1')
     imnames = os.listdir(imgdir)
     out_ann = dict()
     img_total += len(imnames)
